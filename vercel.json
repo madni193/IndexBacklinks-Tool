@@ -1,36 +1,24 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "index.html",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ]
+  "version": 2
 }
 ```
 
----
-
-### Step 5 — Commit the File
-1. Scroll down
-2. Click **"Commit changes"** ✅
+That's it! Just these **3 lines only!**
 
 ---
 
-### Step 6 — Redeploy on Vercel
+### Step 5 — Commit Changes
+Click **"Commit changes"** ✅
+
+---
+
+### Step 6 — Go to Vercel & Redeploy
 1. Go to 👉 **vercel.com/dashboard**
-2. Click your project **"madni-index-backlinks"**
-3. Click **"Redeploy"** button
-4. Wait 1 minute ✅
+2. Click your project
+3. Click **"Redeploy"** 🚀
 
 ---
 
-### Step 7 — Open Your URL Again
+### Your URL will work now:
 ```
 https://madni-index-backlinks.vercel.app
