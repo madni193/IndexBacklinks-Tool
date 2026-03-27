@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Madni Links Crawler</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0f1e;--bg2:#0f1829;--card:#131f35;--card2:#1a2742;
+  --border:#1e3054;--border2:#253a6a;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
+  --blue:#3b82f6;--purple:#8b5cf6;--green:#22c55e;--red:#ef4444;--amber:#f59e0b;
+  --blue-dim:#1e3a6e;--green-dim:#14532d;--red-dim:#450a0a;--amber-dim:#451a03;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);min-height:100vh;color:var(--text)}
+.layout{display:flex;min-height:100vh}
+.sidebar{width:240px;background:var(--bg2);border-right:1px solid var(--border);padding:0;flex-shrink:0;position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100}
+.sidebar-logo{padding:1.5rem 1.25rem;border-bottom:1px solid var(--border)}
+.sidebar-logo h2{font-size:1.05rem;font-weight:800;background:linear-gradient(135deg,#60a5fa,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.sidebar-logo p{font-size:0.7rem;color:var(--text3);margin-top:3px}
+.sidebar-nav{padding:1rem 0}
+.nav-section{padding:0.5rem 1.25rem;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-top:0.5rem}
+.nav-item{display:flex;align-items:center;gap:10px;padding:0.65rem 1.25rem;font-size:0.85rem;color:var(--text2);cursor:pointer;transition:all 0.15s;border-left:3px solid transparent}
+.nav-item:hover{background:var(--card);color:var(--text)}
+.nav-item.active{background:var(--card);color:#60a5fa;border-left-color:#3b82f6}
+.nav-icon{font-size:1rem;width:20px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--blue-dim);color:#60a5fa;font-size:0.65rem;padding:2px 7px;border-radius:20px;font-weight:600}
+.main{margin-left:240px;flex:1;padding:2rem}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem}
+.topbar h1{font-size:1.4rem;font-weight:700;color:var(--text)}
+.badge-pro{background:linear-gradient(135deg,#1d4ed8,#7c3aed);color:white;font-size:0.7rem;font-weight:700;padding:4px 12px;border-radius:20px}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem}
+.stat-card{background:var(--card);border-radius:14px;padding:1.25rem;border:1px solid var(--border);position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.stat-card.s-blue::before{background:linear-gradient(90deg,#3b82f6,#8b5cf6)}
+.stat-card.s-green::before{background:linear-gradient(90deg,#22c55e,#16a34a)}
+.stat-card.s-red::before{background:linear-gradient(90deg,#ef4444,#dc2626)}
+.stat-card.s-amber::before{background:linear-gradient(90deg,#f59e0b,#d97706)}
+.stat-label{font-size:0.72rem;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem}
+.stat-num{font-size:2rem;font-weight:800;color:var(--text)}
+.stat-sub{font-size:0.75rem;color:var(--text3);margin-top:4px}
+.stat-icon{position:absolute;right:1rem;top:50%;transform:translateY(-50%);font-size:2rem;opacity:0.15}
+.card{background:var(--card);border-radius:14px;padding:1.5rem;border:1px solid var(--border);margin-bottom:1.25rem}
+.card-title{font-size:0.95rem;font-weight:700;color:var(--text);margin-bottom:1rem;display:flex;align-items:center;gap:8px}
+.card-title span{font-size:1.1rem}
+.input-row{display:flex;gap:10px}
+.url-input{flex:1;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:0.8rem 1rem;font-size:0.9rem;color:var(--text);outline:none;transition:border-color 0.2s}
+.url-input:focus{border-color:var(--blue)}
+.url-input::placeholder{color:var(--text3)}
+.btn{padding:0.8rem 1.5rem;border-radius:10px;border:none;font-size:0.9rem;font-weight:700;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,#1d4ed8,#7c3aed);color:white}
+.btn-primary:hover:not(:disabled){opacity:0.88;transform:translateY(-1px);box-shadow:0 6px 20px rgba(99,102,241,0.4)}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+.btn-danger{background:var(--red-dim);color:#f87171;border:1px solid #dc2626}
+.btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border)}
+.btn-outline:hover{background:var(--card2);color:var(--text)}
+.btn-sm{padding:0.45rem 0.9rem;font-size:0.78rem}
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+.filter-btn{padding:0.4rem 0.9rem;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.15s}
+.filter-btn.active{background:var(--blue-dim);color:#60a5fa;border-color:#3b82f6}
+.filter-btn:hover:not(.active){background:var(--card2)}
+.search-filter{flex:1;max-width:250px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:0.4rem 0.8rem;font-size:0.8rem;color:var(--text);outline:none}
+.search-filter::placeholder{color:var(--text3)}
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:0.82rem}
+thead{background:var(--card2)}
+th{padding:0.75rem 1rem;text-align:left;font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);border-bottom:1px solid var(--border)}
+td{padding:0.7rem 1rem;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--card2)}
+.url-cell{max-width:380px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Courier New',monospace;font-size:0.75rem}
+.url-cell a{color:#60a5fa;text-decoration:none}
+.url-cell a:hover{text-decoration:underline}
+.badge-tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.68rem;font-weight:700}
+.tag-int{background:#1e3a6e;color:#60a5fa}
+.tag-ext{background:#1a2e1a;color:#4ade80}
+.tag-follow{background:#1e3a6e;color:#93c5fd}
+.tag-nofollow{background:#2a1a1a;color:#fca5a5}
+.tag-indexed{background:#14532d;color:#4ade80;font-size:0.75rem;padding:4px 12px}
+.tag-notindexed{background:#450a0a;color:#f87171;font-size:0.75rem;padding:4px 12px}
+.tag-checking{background:#1c1a2e;color:#a78bfa;font-size:0.75rem;padding:4px 12px}
+.tag-unknown{background:var(--card2);color:var(--text3);font-size:0.75rem;padding:4px 12px}
+.prog-wrap{background:var(--bg2);border-radius:99px;height:8px;overflow:hidden;margin:0.5rem 0}
+.prog-bar{height:100%;border-radius:99px;background:linear-gradient(90deg,#3b82f6,#8b5cf6,#22c55e);transition:width 0.4s;width:0%}
+.upload-zone{border:2px dashed var(--border);border-radius:12px;padding:1.5rem;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;background:var(--bg2)}
+.upload-zone:hover{border-color:var(--blue)}
+.upload-zone.loaded{border-color:var(--green);background:#052e16}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.log-box{background:#020617;border-radius:10px;padding:0.85rem;max-height:200px;overflow-y:auto;border:1px solid var(--border);font-family:'Courier New',monospace;font-size:0.74rem}
+.log-line{padding:3px 0;border-bottom:1px solid #0f172a;display:flex;gap:8px;word-break:break-all;line-height:1.5}
+.log-line:last-child{border-bottom:none}
+.l-ok{color:#4ade80}.l-err{color:#f87171}.l-inf{color:#94a3b8}
+.empty{text-align:center;padding:3rem;color:var(--text3)}
+.empty-icon{font-size:3rem;margin-bottom:1rem;opacity:0.5}
+.done-box{background:var(--green-dim);border:1px solid #16a34a;border-radius:12px;padding:1rem 1.25rem;text-align:center;margin-top:1rem;display:none}
+.done-box h3{color:#4ade80;font-size:1rem;margin-bottom:0.3rem}
+.done-box p{color:#86efac;font-size:0.82rem}
+.pagination{display:flex;align-items:center;gap:8px;margin-top:1rem;flex-wrap:wrap}
+.page-info{font-size:0.8rem;color:var(--text3);margin-right:auto}
+.page-btn{padding:0.4rem 0.8rem;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:0.8rem;cursor:pointer;transition:all 0.15s}
+.page-btn:hover:not(:disabled){background:var(--card2)}
+.page-btn:disabled{opacity:0.3;cursor:not-allowed}
+.page-btn.active-pg{background:var(--blue-dim);color:#60a5fa;border-color:#3b82f6}
+.options-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin-bottom:1rem}
+.opt-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:0.85rem;cursor:pointer;transition:all 0.15s;position:relative}
+.opt-card.selected{border-color:var(--blue);background:var(--blue-dim)}
+.opt-card input[type=checkbox]{position:absolute;top:0.7rem;right:0.7rem;accent-color:#3b82f6}
+.opt-label{font-size:0.82rem;font-weight:600;color:var(--text);margin-bottom:3px}
+.opt-sub{font-size:0.72rem;color:var(--text3)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.info-box{background:var(--blue-dim);border:1px solid #2563eb;border-radius:10px;padding:0.85rem 1rem;font-size:0.82rem;color:#93c5fd;margin-bottom:1rem;line-height:1.6}
+.info-box strong{color:#60a5fa}
+.result-row-ok{background:#052e1688}
+.result-row-fail{background:#45080888}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+textarea.styled{width:100%;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:1rem;font-size:0.85rem;font-family:'Courier New',monospace;resize:vertical;min-height:160px;color:var(--text);outline:none;transition:border-color 0.2s;line-height:1.7}
+textarea.styled:focus{border-color:var(--blue)}
+textarea.styled::placeholder{color:var(--text3)}
+@media(max-width:900px){.sidebar{display:none}.main{margin-left:0}.stats-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.stats-grid{grid-template-columns:1fr 1fr}.options-grid{grid-template-columns:1fr}.input-row{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="layout">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <h2>🕷️ Madni Links Crawler</h2>
+    <p>Professional SEO Link Analysis Tool</p>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section">Main Tools</div>
+    <div class="nav-item active" onclick="showPage('crawler')"><span class="nav-icon">🔍</span> Madni Links Crawler</div>
+    <div class="nav-item" onclick="showPage('indexer')"><span class="nav-icon">🚀</span> Backlink Indexer<span class="nav-badge">200/day</span></div>
+    <div class="nav-item" onclick="showPage('checker')"><span class="nav-icon">✅</span> Index Checker<span class="nav-badge">Auto</span></div>
+    <div class="nav-section">Reports</div>
+    <div class="nav-item" onclick="showPage('history')"><span class="nav-icon">📋</span> Crawl History</div>
+    <div class="nav-item" onclick="showPage('export')"><span class="nav-icon">📤</span> Export Data</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <h1 id="pageTitle">🔍 Madni Links Crawler</h1>
+    <div><span class="badge-pro">PRO TOOL</span></div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card s-blue"><div class="stat-icon">🔗</div><div class="stat-label">Total Links</div><div class="stat-num" id="sTotalLinks">0</div><div class="stat-sub">Last crawl</div></div>
+    <div class="stat-card s-green"><div class="stat-icon">🏠</div><div class="stat-label">Internal Links</div><div class="stat-num" id="sInternal">0</div><div class="stat-sub">Same domain</div></div>
+    <div class="stat-card s-red"><div class="stat-icon">🌐</div><div class="stat-label">External Links</div><div class="stat-num" id="sExternal">0</div><div class="stat-sub">Other domains</div></div>
+    <div class="stat-card s-amber"><div class="stat-icon">✅</div><div class="stat-label">Indexed URLs</div><div class="stat-num" id="sIndexed">0</div><div class="stat-sub">Auto checked</div></div>
+  </div>
+
+  <!-- PAGE: CRAWLER -->
+  <div id="page-crawler" class="tab-content active">
+    <div class="card">
+      <div class="card-title"><span>🌐</span> Enter URL to Crawl</div>
+      <div class="input-row">
+        <input type="text" class="url-input" id="crawlUrl" placeholder="https://example.com/any-page-url" />
+        <button class="btn btn-primary" id="crawlBtn" onclick="startCrawl()">🔍 Crawl Links</button>
+        <button class="btn btn-danger" id="stopCrawlBtn" onclick="shouldStopCrawl=true" style="display:none">⛔ Stop</button>
+      </div>
+      <div style="margin-top:1rem">
+        <div style="font-size:0.78rem;color:var(--text3);margin-bottom:0.6rem;font-weight:600">CRAWL OPTIONS</div>
+        <div class="options-grid">
+          <div class="opt-card selected" id="opt-internal" onclick="toggleOpt('internal')"><input type="checkbox" id="chk-internal" checked><div class="opt-label">Internal Links</div><div class="opt-sub">Same domain</div></div>
+          <div class="opt-card selected" id="opt-external" onclick="toggleOpt('external')"><input type="checkbox" id="chk-external" checked><div class="opt-label">External Links</div><div class="opt-sub">Other domains</div></div>
+          <div class="opt-card selected" id="opt-nofollow" onclick="toggleOpt('nofollow')"><input type="checkbox" id="chk-nofollow" checked><div class="opt-label">No-Follow Links</div><div class="opt-sub">Include nofollow</div></div>
+        </div>
+      </div>
+      <div id="crawlProgress" style="display:none;margin-top:1rem">
+        <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text2);margin-bottom:4px"><span id="crawlStatus">Fetching...</span><span id="crawlPct">0%</span></div>
+        <div class="prog-wrap"><div class="prog-bar" id="crawlBar"></div></div>
+      </div>
+    </div>
+
+    <div class="card" id="resultsCard" style="display:none">
+      <div class="card-title"><span>🔗</span> Crawl Results <span style="font-size:0.8rem;color:var(--text3);font-weight:400" id="resultCount"></span></div>
+      <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterLinks('all',this)">All</button>
+        <button class="filter-btn" onclick="filterLinks('internal',this)">Internal</button>
+        <button class="filter-btn" onclick="filterLinks('external',this)">External</button>
+        <button class="filter-btn" onclick="filterLinks('follow',this)">Follow</button>
+        <button class="filter-btn" onclick="filterLinks('nofollow',this)">No-Follow</button>
+        <input type="text" class="search-filter" id="linkSearch" placeholder="Search links..." oninput="applyFilters()">
+        <button class="btn btn-outline btn-sm" onclick="exportCSV()">📤 CSV</button>
+        <button class="btn btn-outline btn-sm" onclick="copyAllLinks()">📋 Copy</button>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>#</th><th>URL</th><th>Anchor Text</th><th>Type</th><th>Rel</th></tr></thead>
+        <tbody id="linksTable"></tbody></table>
+      </div>
+      <div class="pagination">
+        <div class="page-info" id="pageInfo">0 results</div>
+        <button class="page-btn" id="prevBtn" onclick="changePage(-1)" disabled>← Prev</button>
+        <span id="pageNums" style="display:flex;gap:4px"></span>
+        <button class="page-btn" id="nextBtn" onclick="changePage(1)" disabled>Next →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE: INDEXER -->
+  <div id="page-indexer" class="tab-content">
+    <div class="card">
+      <div class="card-title"><span>🔑</span> Upload Service Account JSON Key</div>
+      <div class="upload-zone" id="upZoneIdx">
+        <input type="file" accept=".json" onchange="loadJSONIdx(event)">
+        <div style="font-size:2rem;margin-bottom:0.5rem" id="upIconIdx">📁</div>
+        <div id="upMsgIdx" style="color:var(--text2);font-size:0.88rem">Click to upload <strong style="color:#60a5fa">service_account.json</strong><br><small style="color:var(--text3)">🔒 100% private — never leaves browser</small></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>📋</span> Paste Backlink URLs</div>
+      <textarea class="styled" id="urlBoxIdx" placeholder="https://hamcospo.com/page-1&#10;https://hamcospo.com/page-2&#10;..." oninput="urlChangedIdx()"></textarea>
+      <div style="display:flex;justify-content:space-between;margin-top:0.5rem">
+        <span style="font-size:0.8rem;color:var(--text3)">URLs: <b style="color:#60a5fa" id="urlNumIdx">0</b></span>
+        <span style="font-size:0.78rem;color:var(--amber)">Max 200/day</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>🚀</span> Submit to Google</div>
+      <button class="btn btn-primary" style="width:100%;padding:1rem;font-size:1rem" id="goBtnIdx" onclick="startJobIdx()" disabled>Upload JSON & Add URLs First</button>
+      <button class="btn btn-danger" style="width:100%;padding:0.85rem;margin-top:0.75rem;display:none" id="stopBtnIdx" onclick="shouldStopIdx=true">⛔ Stop Indexing</button>
+    </div>
+    <div class="card" id="progressCardIdx" style="display:none">
+      <div class="card-title"><span>⚡</span> Indexing Progress</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin-bottom:1rem">
+        <div class="stat-card s-green"><div class="stat-label">Indexed</div><div class="stat-num" id="nOkIdx">0</div></div>
+        <div class="stat-card s-red"><div class="stat-label">Failed</div><div class="stat-num" id="nFailIdx">0</div></div>
+        <div class="stat-card s-blue"><div class="stat-label">Left</div><div class="stat-num" id="nLeftIdx">0</div></div>
+      </div>
+      <div class="prog-wrap" style="height:12px"><div class="prog-bar" id="pbarIdx"></div></div>
+      <div style="font-size:0.8rem;color:var(--text3);text-align:right;margin-bottom:1rem" id="pPctIdx">0%</div>
+      <div class="log-box" id="logBoxIdx"></div>
+      <div class="done-box" id="doneBannerIdx"><h3>🎉 Done!</h3><p id="doneMsgIdx"></p></div>
+    </div>
+  </div>
+
+  <!-- PAGE: INDEX CHECKER (FULLY AUTOMATIC) -->
+  <div id="page-checker" class="tab-content">
+
+    <!-- JSON Upload for Checker -->
+    <div class="card">
+      <div class="card-title"><span>🔑</span> Upload Service Account JSON Key</div>
+      <div class="info-box">ℹ️ This uses the <strong>Google Search Console URL Inspection API</strong> to automatically check if each URL is indexed or not. Uses the same <strong>service_account.json</strong> file.</div>
+      <div class="upload-zone" id="upZoneChk">
+        <input type="file" accept=".json" onchange="loadJSONChk(event)">
+        <div style="font-size:2rem;margin-bottom:0.5rem" id="upIconChk">📁</div>
+        <div id="upMsgChk" style="color:var(--text2);font-size:0.88rem">Click to upload <strong style="color:#60a5fa">service_account.json</strong><br><small style="color:var(--text3)">🔒 100% private — never leaves browser</small></div>
+      </div>
+    </div>
+
+    <!-- Site URL -->
+    <div class="card" id="chkSiteCard" style="display:none">
+      <div class="card-title"><span>🌐</span> Your Verified Site URL</div>
+      <div class="info-box">Enter your website domain exactly as it appears in Google Search Console (e.g. <strong>https://hamcospo.com/</strong>)</div>
+      <input type="text" class="url-input" id="chkSiteUrl" placeholder="https://hamcospo.com/" style="width:100%" value="https://hamcospo.com/" />
+    </div>
+
+    <!-- URLs to Check -->
+    <div class="card" id="chkUrlsCard" style="display:none">
+      <div class="card-title"><span>📋</span> Paste URLs to Check</div>
+      <textarea class="styled" id="chkUrls" placeholder="https://hamcospo.com/page-1&#10;https://hamcospo.com/page-2&#10;https://hamcospo.com/page-3&#10;..." oninput="countChkUrls()"></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem;flex-wrap:wrap;gap:8px">
+        <span style="font-size:0.8rem;color:var(--text3)">URLs entered: <b style="color:#60a5fa" id="chkUrlCount">0</b></span>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" id="chkStartBtn" onclick="startIndexCheck()">✅ Check Indexing Status</button>
+          <button class="btn btn-danger" id="chkStopBtn" onclick="shouldStopChk=true" style="display:none">⛔ Stop</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card" id="chkResultsCard" style="display:none">
+      <div class="card-title"><span>📊</span> Check Results</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin-bottom:1.25rem">
+        <div class="stat-card s-green"><div class="stat-icon">✅</div><div class="stat-label">Indexed</div><div class="stat-num" id="chkOk">0</div><div class="stat-sub">Found in Google</div></div>
+        <div class="stat-card s-red"><div class="stat-icon">❌</div><div class="stat-label">Not Indexed</div><div class="stat-num" id="chkFail">0</div><div class="stat-sub">Not in Google</div></div>
+        <div class="stat-card s-blue"><div class="stat-icon">📋</div><div class="stat-label">Total</div><div class="stat-num" id="chkTotal">0</div><div class="stat-sub">URLs checked</div></div>
+      </div>
+
+      <!-- Progress bar for checker -->
+      <div id="chkProgress" style="display:none;margin-bottom:1rem">
+        <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--text2);margin-bottom:4px">
+          <span id="chkStatus">Checking...</span>
+          <span id="chkPct">0%</span>
+        </div>
+        <div class="prog-wrap" style="height:10px"><div class="prog-bar" id="chkBar"></div></div>
+      </div>
+
+      <!-- Filter for results -->
+      <div class="filter-bar" style="margin-bottom:1rem">
+        <button class="filter-btn active" onclick="filterChk('all',this)">All</button>
+        <button class="filter-btn" onclick="filterChk('indexed',this)">✅ Indexed</button>
+        <button class="filter-btn" onclick="filterChk('notindexed',this)">❌ Not Indexed</button>
+        <button class="filter-btn" onclick="filterChk('pending',this)">⏳ Pending</button>
+        <button class="btn btn-outline btn-sm" onclick="exportChkCSV()" style="margin-left:auto">📤 Export CSV</button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>URL</th><th>Status</th><th>Google Coverage</th><th>Last Crawled</th></tr></thead>
+          <tbody id="chkTable"></tbody>
+        </table>
+      </div>
+
+      <div class="done-box" id="chkDoneBox"><h3>🎉 Check Complete!</h3><p id="chkDoneMsg"></p></div>
+    </div>
+  </div>
+
+  <!-- PAGE: HISTORY -->
+  <div id="page-history" class="tab-content">
+    <div class="card">
+      <div class="card-title"><span>📋</span> Crawl History</div>
+      <div id="historyList"><div class="empty"><div class="empty-icon">📋</div><p>No history yet. Start crawling URLs!</p></div></div>
+    </div>
+  </div>
+
+  <!-- PAGE: EXPORT -->
+  <div id="page-export" class="tab-content">
+    <div class="card">
+      <div class="card-title"><span>📤</span> Export Data</div>
+      <p style="font-size:0.85rem;color:var(--text2);margin-bottom:1.25rem">Export your crawled or checked data.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="exportCSV()">📊 Links CSV</button>
+        <button class="btn btn-outline" onclick="exportJSON()">📄 Links JSON</button>
+        <button class="btn btn-outline" onclick="exportTXT()">📝 URLs TXT</button>
+        <button class="btn btn-outline" onclick="exportChkCSV()">✅ Index Check CSV</button>
+      </div>
+      <div style="margin-top:1.5rem;background:var(--bg2);border-radius:10px;padding:1rem;border:1px solid var(--border)">
+        <div style="font-size:0.8rem;color:var(--text3);margin-bottom:0.5rem;font-weight:600">PREVIEW</div>
+        <pre id="exportPreview" style="font-size:0.75rem;color:var(--text2);overflow-x:auto;white-space:pre-wrap">No data yet. Crawl a URL first.</pre>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<script>
+// ===== NAVIGATION =====
+var pages = {crawler:'🔍 Madni Links Crawler',indexer:'🚀 Backlink Indexer',checker:'✅ Index Checker',history:'📋 Crawl History',export:'📤 Export Data'};
+function showPage(name) {
+  document.querySelectorAll('.tab-content').forEach(function(e){e.classList.remove('active');});
+  document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('active');});
+  var pg = document.getElementById('page-'+name);
+  if(pg) pg.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(function(el){
+    var map = {crawler:'Madni',indexer:'Indexer',checker:'Checker',history:'History',export:'Export'};
+    if(el.textContent.indexOf(map[name])!==-1) el.classList.add('active');
+  });
+  document.getElementById('pageTitle').textContent = pages[name]||name;
+  if(name==='export') updateExportPreview();
+}
+
+// ===== CRAWL OPTIONS =====
+function toggleOpt(name){
+  var chk=document.getElementById('chk-'+name);
+  chk.checked=!chk.checked;
+  document.getElementById('opt-'+name).classList.toggle('selected',chk.checked);
+}
+
+// ===== LINK CRAWLER =====
+var allLinks=[],filteredLinks=[],currentFilter='all',currentPg=1,perPage=50,crawlHistory=[],shouldStopCrawl=false;
+
+async function startCrawl(){
+  var url=document.getElementById('crawlUrl').value.trim();
+  if(!url||!url.startsWith('http')){alert('Please enter a valid URL!');return;}
+  shouldStopCrawl=false;allLinks=[];filteredLinks=[];
+  document.getElementById('crawlBtn').disabled=true;
+  document.getElementById('stopCrawlBtn').style.display='block';
+  document.getElementById('crawlProgress').style.display='block';
+  document.getElementById('resultsCard').style.display='none';
+  setProgress('crawlBar','crawlPct','crawlStatus',20,'Connecting...');
+
+  var proxy='https://api.allorigins.win/raw?url='+encodeURIComponent(url);
+  try{
+    var res=await fetch(proxy);
+    if(!res.ok) throw new Error('Cannot fetch this page ('+res.status+')');
+    setProgress('crawlBar','crawlPct','crawlStatus',55,'Parsing HTML...');
+    var html=await res.text();
+    var doc=new DOMParser().parseFromString(html,'text/html');
+    var anchors=doc.querySelectorAll('a[href]');
+    var baseHost=new URL(url).hostname;
+    setProgress('crawlBar','crawlPct','crawlStatus',80,'Extracting links...');
+    var seen={},total=0,internal=0,external=0,nofollow=0;
+    var si=document.getElementById('chk-internal').checked;
+    var se=document.getElementById('chk-external').checked;
+    var sn=document.getElementById('chk-nofollow').checked;
+    anchors.forEach(function(a){
+      if(shouldStopCrawl) return;
+      var href=a.getAttribute('href');
+      if(!href||href.startsWith('#')||href.startsWith('mailto:')||href.startsWith('tel:')||href.startsWith('javascript:')) return;
+      var abs=href;
+      try{abs=new URL(href,url).href;}catch(e){return;}
+      if(seen[abs]) return; seen[abs]=true;
+      var isInt=false; try{isInt=new URL(abs).hostname===baseHost;}catch(e){}
+      var rel=a.getAttribute('rel')||'';
+      var isNF=rel.indexOf('nofollow')!==-1;
+      var anchor=(a.textContent||'').trim().substring(0,60)||'[No Text]';
+      if(!si&&isInt) return; if(!se&&!isInt) return; if(!sn&&isNF) return;
+      total++;if(isInt)internal++;else external++;if(isNF)nofollow++;
+      allLinks.push({url:abs,anchor:anchor,type:isInt?'internal':'external',rel:isNF?'nofollow':'follow'});
+    });
+    document.getElementById('sTotalLinks').textContent=total;
+    document.getElementById('sInternal').textContent=internal;
+    document.getElementById('sExternal').textContent=external;
+    setProgress('crawlBar','crawlPct','crawlStatus',100,'Done! '+total+' links found.');
+    crawlHistory.unshift({url:url,total:total,internal:internal,external:external,date:new Date().toLocaleString()});
+    updateHistory();
+    filteredLinks=allLinks.slice();currentPg=1;
+    renderTable();
+    document.getElementById('resultsCard').style.display='block';
+  }catch(err){
+    document.getElementById('crawlStatus').textContent='Error: '+err.message;
+    document.getElementById('crawlBar').style.background='#ef4444';
+    alert('Could not crawl this URL!\n\n'+err.message+'\n\nSome websites block crawling. Try another URL.');
+  }
+  document.getElementById('crawlBtn').disabled=false;
+  document.getElementById('stopCrawlBtn').style.display='none';
+}
+
+function setProgress(barId,pctId,statusId,pct,msg){
+  document.getElementById(barId).style.width=pct+'%';
+  if(pctId) document.getElementById(pctId).textContent=pct+'%';
+  if(statusId) document.getElementById(statusId).textContent=msg;
+}
+
+function renderTable(){
+  var tbody=document.getElementById('linksTable');
+  var start=(currentPg-1)*perPage,end=start+perPage,page=filteredLinks.slice(start,end);
+  if(filteredLinks.length===0){
+    tbody.innerHTML='<tr><td colspan="5"><div class="empty"><div class="empty-icon">🔍</div><p>No links match the filter.</p></div></td></tr>';
+    document.getElementById('pageInfo').textContent='No results';
+    document.getElementById('prevBtn').disabled=true;
+    document.getElementById('nextBtn').disabled=true;
+    document.getElementById('pageNums').innerHTML='';
+    return;
+  }
+  var html='';
+  page.forEach(function(link,i){
+    var tb=link.type==='internal'?'<span class="badge-tag tag-int">Internal</span>':'<span class="badge-tag tag-ext">External</span>';
+    var rb=link.rel==='nofollow'?'<span class="badge-tag tag-nofollow">nofollow</span>':'<span class="badge-tag tag-follow">follow</span>';
+    html+='<tr><td style="color:var(--text3);font-size:0.75rem">'+(start+i+1)+'</td><td class="url-cell"><a href="'+link.url+'" target="_blank" title="'+link.url+'">'+link.url+'</a></td><td style="color:var(--text2);font-size:0.78rem;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escHtml(link.anchor)+'</td><td>'+tb+'</td><td>'+rb+'</td></tr>';
+  });
+  tbody.innerHTML=html;
+  var totalPgs=Math.ceil(filteredLinks.length/perPage);
+  document.getElementById('pageInfo').textContent='Showing '+(start+1)+'-'+Math.min(end,filteredLinks.length)+' of '+filteredLinks.length;
+  document.getElementById('prevBtn').disabled=currentPg===1;
+  document.getElementById('nextBtn').disabled=currentPg===totalPgs;
+  document.getElementById('resultCount').textContent='('+filteredLinks.length+' links)';
+  var numHtml='';
+  for(var p=Math.max(1,currentPg-2);p<=Math.min(totalPgs,currentPg+2);p++)
+    numHtml+='<button class="page-btn'+(p===currentPg?' active-pg':'')+'" onclick="goToPage('+p+')">'+p+'</button>';
+  document.getElementById('pageNums').innerHTML=numHtml;
+}
+
+function goToPage(p){currentPg=p;renderTable();}
+function changePage(d){currentPg+=d;renderTable();}
+function filterLinks(type,btn){
+  currentFilter=type;
+  document.querySelectorAll('.filter-bar .filter-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  applyFilters();
+}
+function applyFilters(){
+  var search=document.getElementById('linkSearch').value.toLowerCase();
+  filteredLinks=allLinks.filter(function(link){
+    var tm=currentFilter==='all'||(currentFilter==='internal'&&link.type==='internal')||(currentFilter==='external'&&link.type==='external')||(currentFilter==='follow'&&link.rel==='follow')||(currentFilter==='nofollow'&&link.rel==='nofollow');
+    var sm=!search||link.url.toLowerCase().indexOf(search)!==-1||link.anchor.toLowerCase().indexOf(search)!==-1;
+    return tm&&sm;
+  });
+  currentPg=1;renderTable();
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ===== EXPORT =====
+function exportCSV(){
+  if(!allLinks.length){alert('No data! Crawl a URL first.');return;}
+  var csv='URL,Anchor Text,Type,Rel\n'+allLinks.map(function(l){return'"'+l.url+'","'+l.anchor.replace(/"/g,'""')+'","'+l.type+'","'+l.rel+'"';}).join('\n');
+  dlFile('madni-links.csv',csv,'text/csv');
+}
+function exportJSON(){
+  if(!allLinks.length){alert('No data!');return;}
+  dlFile('madni-links.json',JSON.stringify(allLinks,null,2),'application/json');
+}
+function exportTXT(){
+  if(!allLinks.length){alert('No data!');return;}
+  dlFile('madni-urls.txt',allLinks.map(function(l){return l.url;}).join('\n'),'text/plain');
+}
+function dlFile(name,content,type){
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:type}));
+  a.download=name;a.click();
+}
+function copyAllLinks(){
+  if(!allLinks.length){alert('No links!');return;}
+  navigator.clipboard.writeText(allLinks.map(function(l){return l.url;}).join('\n')).then(function(){alert('✅ '+allLinks.length+' URLs copied!');});
+}
+function updateExportPreview(){
+  var pre=document.getElementById('exportPreview');
+  if(!allLinks.length){pre.textContent='No data yet.';return;}
+  pre.textContent='URL,Anchor,Type,Rel\n'+allLinks.slice(0,5).map(function(l){return'"'+l.url+'","'+l.anchor+'","'+l.type+'","'+l.rel+'"';}).join('\n')+'\n... and '+(allLinks.length-5)+' more';
+}
+
+// ===== HISTORY =====
+function updateHistory(){
+  var div=document.getElementById('historyList');
+  if(!crawlHistory.length){div.innerHTML='<div class="empty"><div class="empty-icon">📋</div><p>No history yet.</p></div>';return;}
+  div.innerHTML=crawlHistory.map(function(h){
+    return '<div style="display:flex;align-items:center;gap:1rem;padding:0.85rem;background:var(--bg2);border-radius:10px;border:1px solid var(--border);margin-bottom:0.5rem"><div style="font-size:1.5rem">🌐</div><div style="flex:1;overflow:hidden"><div style="font-size:0.85rem;color:#60a5fa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+h.url+'</div><div style="font-size:0.75rem;color:var(--text3);margin-top:3px">'+h.date+' — '+h.total+' links</div></div><div style="display:flex;gap:6px;flex-shrink:0"><span class="badge-tag tag-int">'+h.internal+' int</span><span class="badge-tag tag-ext">'+h.external+' ext</span></div></div>';
+  }).join('');
+}
+
+// ===== INDEXER =====
+var saIdx=null,shouldStopIdx=false;
+function loadJSONIdx(e){loadJSONCommon(e,'Idx',function(sa){saIdx=sa;checkReadyIdx();});}
+function urlChangedIdx(){document.getElementById('urlNumIdx').textContent=getURLsIdx().length;checkReadyIdx();}
+function getURLsIdx(){return document.getElementById('urlBoxIdx').value.split('\n').map(function(u){return u.trim();}).filter(function(u){return u.indexOf('http')===0;});}
+function checkReadyIdx(){
+  var ready=saIdx&&getURLsIdx().length>0;
+  var btn=document.getElementById('goBtnIdx');
+  btn.disabled=!ready;
+  btn.textContent=ready?'🚀 Index '+Math.min(getURLsIdx().length,200)+' URLs Now':'Upload JSON & Add URLs First';
+}
+async function startJobIdx(){
+  shouldStopIdx=false;
+  var urls=getURLsIdx().slice(0,200),total=urls.length;
+  document.getElementById('goBtnIdx').style.display='none';
+  document.getElementById('stopBtnIdx').style.display='block';
+  document.getElementById('progressCardIdx').style.display='block';
+  document.getElementById('doneBannerIdx').style.display='none';
+  document.getElementById('logBoxIdx').innerHTML='';
+  document.getElementById('nOkIdx').textContent='0';
+  document.getElementById('nFailIdx').textContent='0';
+  document.getElementById('nLeftIdx').textContent=total;
+  document.getElementById('pbarIdx').style.width='0%';
+  document.getElementById('pPctIdx').textContent='0%';
+  addLogTo('logBoxIdx','🔑','Getting access token...','l-inf');
+  var token;
+  try{token=await getTokenWith(saIdx,'https://www.googleapis.com/auth/indexing');addLogTo('logBoxIdx','✅','Token obtained!','l-ok');}
+  catch(err){addLogTo('logBoxIdx','❌','Auth failed: '+err.message,'l-err');document.getElementById('goBtnIdx').style.display='block';document.getElementById('stopBtnIdx').style.display='none';return;}
+  var ok=0,fail=0;
+  for(var i=0;i<urls.length;i++){
+    if(shouldStopIdx){addLogTo('logBoxIdx','⛔','Stopped.','l-inf');break;}
+    var url=urls[i];
+    try{
+      var res=await fetch('https://indexing.googleapis.com/v3/urlNotifications:publish',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({url:url,type:'URL_UPDATED'})});
+      if(res.status===200){ok++;addLogTo('logBoxIdx','✅',url,'l-ok');}
+      else{var ed=await res.json().catch(function(){return{};});fail++;addLogTo('logBoxIdx','❌',url+' → '+(ed&&ed.error?ed.error.message:'Error '+res.status),'l-err');}
+    }catch(e){fail++;addLogTo('logBoxIdx','❌',url+' → Network error','l-err');}
+    var done=i+1,pct=Math.round((done/total)*100);
+    document.getElementById('pbarIdx').style.width=pct+'%';
+    document.getElementById('pPctIdx').textContent=pct+'% ('+done+'/'+total+')';
+    document.getElementById('nOkIdx').textContent=ok;
+    document.getElementById('nFailIdx').textContent=fail;
+    document.getElementById('nLeftIdx').textContent=total-done;
+    await sleep(300);
+  }
+  document.getElementById('goBtnIdx').style.display='block';
+  document.getElementById('goBtnIdx').disabled=false;
+  document.getElementById('goBtnIdx').textContent='🔄 Run Again';
+  document.getElementById('stopBtnIdx').style.display='none';
+  document.getElementById('doneBannerIdx').style.display='block';
+  document.getElementById('doneMsgIdx').textContent=ok+' URLs submitted! '+(fail>0?fail+' failed.':'Zero errors! 🎉');
+  addLogTo('logBoxIdx','🎉','DONE — Indexed: '+ok+' | Failed: '+fail,'l-inf');
+}
+
+// ===== INDEX CHECKER (FULLY AUTOMATIC) =====
+var saChk=null,shouldStopChk=false,chkResults=[],chkFilter='all';
+
+function loadJSONChk(e){
+  loadJSONCommon(e,'Chk',function(sa){
+    saChk=sa;
+    document.getElementById('chkSiteCard').style.display='block';
+    document.getElementById('chkUrlsCard').style.display='block';
+  });
+}
+
+function countChkUrls(){
+  var urls=getChkURLs();
+  document.getElementById('chkUrlCount').textContent=urls.length;
+}
+
+function getChkURLs(){
+  return document.getElementById('chkUrls').value.split('\n').map(function(u){return u.trim();}).filter(function(u){return u.indexOf('http')===0;});
+}
+
+async function startIndexCheck(){
+  if(!saChk){alert('Please upload your service_account.json first!');return;}
+  var urls=getChkURLs();
+  if(!urls.length){alert('Please enter at least one URL!');return;}
+  var siteUrl=document.getElementById('chkSiteUrl').value.trim();
+  if(!siteUrl||!siteUrl.startsWith('http')){alert('Please enter your verified site URL!');return;}
+
+  shouldStopChk=false;
+  chkResults=[];
+
+  document.getElementById('chkResultsCard').style.display='block';
+  document.getElementById('chkDoneBox').style.display='none';
+  document.getElementById('chkProgress').style.display='block';
+  document.getElementById('chkStartBtn').disabled=true;
+  document.getElementById('chkStopBtn').style.display='block';
+  document.getElementById('chkOk').textContent='0';
+  document.getElementById('chkFail').textContent='0';
+  document.getElementById('chkTotal').textContent=urls.length;
+  document.getElementById('chkTable').innerHTML='<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--text3)">⏳ Getting access token...</td></tr>';
+
+  var token;
+  try{
+    token=await getTokenWith(saChk,'https://www.googleapis.com/auth/webmasters.readonly');
+  }catch(err){
+    alert('Authentication failed!\n\n'+err.message+'\n\nMake sure your service account is added as Owner in Google Search Console.');
+    document.getElementById('chkStartBtn').disabled=false;
+    document.getElementById('chkStopBtn').style.display='none';
+    return;
+  }
+
+  var ok=0,fail=0;
+
+  for(var i=0;i<urls.length;i++){
+    if(shouldStopChk){break;}
+    var url=urls[i];
+    var pct=Math.round(((i+1)/urls.length)*100);
+    document.getElementById('chkBar').style.width=pct+'%';
+    document.getElementById('chkPct').textContent=pct+'%';
+    document.getElementById('chkStatus').textContent='Checking '+(i+1)+' of '+urls.length+': '+url.substring(0,50)+'...';
+
+    var result={url:url,status:'checking',verdict:'',coverage:'',lastCrawled:''};
+    chkResults.push(result);
+
+    try{
+      var res=await fetch('https://searchconsole.googleapis.com/v1/urlInspection/index:inspect',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+        body:JSON.stringify({inspectionUrl:url,siteUrl:siteUrl})
+      });
+
+      if(res.status===200){
+        var data=await res.json();
+        var insp=data.inspectionResult||{};
+        var idx=insp.indexStatusResult||{};
+        var verdict=idx.verdict||'';
+        var coverage=idx.coverageState||'';
+        var lastCrawled=idx.lastCrawlTime?new Date(idx.lastCrawlTime).toLocaleDateString():'Never';
+
+        if(verdict==='PASS'||verdict==='VERDICT_PASS'){
+          result.status='indexed';ok++;
+        } else {
+          result.status='notindexed';fail++;
+        }
+        result.verdict=verdict;
+        result.coverage=coverage;
+        result.lastCrawled=lastCrawled;
+      } else {
+        var errData=await res.json().catch(function(){return{};});
+        result.status='error';
+        result.coverage=(errData&&errData.error)?errData.error.message:'Error '+res.status;
+        fail++;
+      }
+    }catch(e){
+      result.status='error';
+      result.coverage='Network error';
+      fail++;
+    }
+
+    document.getElementById('chkOk').textContent=ok;
+    document.getElementById('chkFail').textContent=fail;
+    document.getElementById('sIndexed').textContent=ok;
+    renderChkTable();
+    await sleep(500);
+  }
+
+  document.getElementById('chkProgress').style.display='none';
+  document.getElementById('chkStartBtn').disabled=false;
+  document.getElementById('chkStopBtn').style.display='none';
+  document.getElementById('chkDoneBox').style.display='block';
+  document.getElementById('chkDoneMsg').textContent=ok+' URLs are indexed in Google. '+fail+' URLs are not indexed yet.';
+}
+
+function renderChkTable(){
+  var filtered=chkResults.filter(function(r){
+    if(chkFilter==='all') return true;
+    if(chkFilter==='indexed') return r.status==='indexed';
+    if(chkFilter==='notindexed') return r.status==='notindexed'||r.status==='error';
+    if(chkFilter==='pending') return r.status==='checking';
+    return true;
+  });
+
+  var html='';
+  filtered.forEach(function(r,i){
+    var sb='';
+    if(r.status==='indexed') sb='<span class="badge-tag tag-indexed">✅ Indexed</span>';
+    else if(r.status==='notindexed') sb='<span class="badge-tag tag-notindexed">❌ Not Indexed</span>';
+    else if(r.status==='checking') sb='<span class="badge-tag tag-checking">⏳ Checking</span>';
+    else sb='<span class="badge-tag tag-notindexed">⚠️ Error</span>';
+    var rowClass=r.status==='indexed'?'result-row-ok':r.status==='notindexed'?'result-row-fail':'';
+    html+='<tr class="'+rowClass+'"><td style="color:var(--text3)">'+(i+1)+'</td><td class="url-cell"><a href="'+r.url+'" target="_blank">'+r.url+'</a></td><td>'+sb+'</td><td style="font-size:0.75rem;color:var(--text2)">'+(r.coverage||'—')+'</td><td style="font-size:0.75rem;color:var(--text3)">'+(r.lastCrawled||'—')+'</td></tr>';
+  });
+  document.getElementById('chkTable').innerHTML=html||'<tr><td colspan="5" style="text-align:center;padding:1rem;color:var(--text3)">No results for this filter.</td></tr>';
+}
+
+function filterChk(type,btn){
+  chkFilter=type;
+  document.querySelectorAll('#page-checker .filter-btn').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  renderChkTable();
+}
+
+function exportChkCSV(){
+  if(!chkResults.length){alert('No check results yet!');return;}
+  var csv='URL,Status,Coverage,Last Crawled\n'+chkResults.map(function(r){return'"'+r.url+'","'+r.status+'","'+(r.coverage||'')+'","'+(r.lastCrawled||'')+'"';}).join('\n');
+  dlFile('madni-index-check.csv',csv,'text/csv');
+}
+
+// ===== SHARED UTILS =====
+function loadJSONCommon(e,suffix,callback){
+  var file=e.target.files[0];
+  if(!file) return;
+  var r=new FileReader();
+  r.onload=function(ev){
+    try{
+      var parsed=JSON.parse(ev.target.result);
+      if(!parsed.private_key||!parsed.client_email){alert('Invalid JSON file!\n\nUpload a valid service_account.json');return;}
+      document.getElementById('upZone'+suffix).classList.add('loaded');
+      document.getElementById('upIcon'+suffix).textContent='✅';
+      document.getElementById('upMsg'+suffix).innerHTML='<div style="color:#4ade80;font-weight:700">✅ '+file.name+' loaded!</div><div style="color:var(--text3);font-size:0.78rem;margin-top:4px">'+parsed.client_email+'</div>';
+      callback(parsed);
+    }catch(ex){alert('Cannot read file. Make sure it is a valid JSON.');}
+  };
+  r.readAsText(file);
+}
+
+function b64url(obj){
+  return btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+}
+
+async function getTokenWith(sa,scope){
+  var now=Math.floor(Date.now()/1000);
+  var msg=b64url({alg:'RS256',typ:'JWT'})+'.'+b64url({iss:sa.client_email,scope:scope,aud:'https://oauth2.googleapis.com/token',exp:now+3600,iat:now});
+  var pem=sa.private_key.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----/g,'').replace(/\s/g,'');
+  var der=Uint8Array.from(atob(pem),function(c){return c.charCodeAt(0);});
+  var key=await crypto.subtle.importKey('pkcs8',der,{name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['sign']);
+  var sig=await crypto.subtle.sign('RSASSA-PKCS1-v1_5',key,new TextEncoder().encode(msg));
+  var jwt=msg+'.'+btoa(String.fromCharCode.apply(null,new Uint8Array(sig))).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  var res=await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion='+jwt});
+  var data=await res.json();
+  if(!data.access_token) throw new Error(data.error_description||'Failed to get token');
+  return data.access_token;
+}
+
+function addLogTo(boxId,icon,text,cls){
+  var box=document.getElementById(boxId);
+  var div=document.createElement('div');
+  div.className='log-line '+cls;
+  div.innerHTML='<span style="flex-shrink:0">'+icon+'</span><span>'+text+'</span>';
+  box.appendChild(div);
+  box.scrollTop=box.scrollHeight;
+}
+
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+</script>
+</body>
+</html>
